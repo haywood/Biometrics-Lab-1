@@ -12,14 +12,14 @@ function classifier_1(trainpath, testpath, outtrainpath, outtestpath)
 	numLabel = size(sampleLabel, 1);
 	numSample = size(sample, 1);
 
-	for i = 1:numSample
-		sample(i, :) = sample(i, :)/norm(sample(i, :));
-	end
-
 	labelSet = unique(sampleLabel);
 	numLabel = size(labelSet, 1);
 
-	good = select_features(sample, perClass, 3, 0.001);
+	for i = 1:size(sample, 2)
+		sample(:, i) = (sample(:, i) - mean(sample(:, i)))/sqrt(var(sample(:, i)));
+	end
+
+	good = select_features(sample, perClass, 3);
 	sample = sample(:, good);
 
 	numValidate = ceil(numSample/2);

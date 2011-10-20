@@ -9,35 +9,20 @@ function classifier_2(trainpath, testpath, outtrainpath, outtestpath)
 	sampleLabel = C{1};
 	perClass = 16;
 
-	numLabel = size(sampleLabel, 1);
-	numSample = size(sample, 1);
-	sampleOrd = 1:numSample;
-
 	labelSet = unique(sampleLabel);
-	numLabel = size(labelSet, 1);
 
-	for i = 1:numSample
-		j = find(ismember(labelSet, sampleLabel{i}) == 1);
-		sampleOrd(i) = j;
+	for i = 1:size(sample, 2)
+		sample(:, i) = (sample(:, i) - mean(sample(:, i)))/sqrt(var(sample(:, i)));
 	end
 
-	for i = 1:numSample
-		sample(i, :) = sample(i, :)/norm(sample(i, :));
-	end
-
-%	for i = 1:size(sample, 2)
-%		var(sample(:, i)/sqrt(var(sample(:, i))))
-%	end
-
-	good = select_features(sample, perClass, 0, 0.001);
+	good = select_features(sample, perClass, 9)
 	sample = sample(:, good);
 	
-	numValidate = ceil(numSample/2);
-	numTrain = floor(numSample/2);
-	numFeat = size(sample, 2);
+	numValidate = ceil(size(sample, 1)/2);
+	numTrain = floor(size(sample, 1)/2);
 
-	validate = zeros(numValidate, numFeat);
-	train = zeros(numLabel, numFeat);
+	validate = zeros(numValidate, size(sample, 2));
+	train = zeros(numTrain, size(sample, 2));
 
 	validateLabel = {};
 	trainLabel = {};
@@ -45,7 +30,7 @@ function classifier_2(trainpath, testpath, outtrainpath, outtestpath)
 	% split samples for cross validation
 	i = 1;
 	j = 1;
-	for k = 1:numSample
+	for k = 1:size(sample, 1)
 		if mod(k, perClass) < floor(perClass/2)
 			trainLabel{end+1} = sampleLabel{k};
 			train(i, :) = sample(k, :);
