@@ -46,23 +46,15 @@ function classifier_2(trainpath, testpath, outtrainpath, outtestpath)
 
 		k = 1;
 		for i = 1:size(validate, 1)
-			near = [];
+			best = [Inf, 1];
 			for j = 1:size(train, 1)
 				l = find(ismember(labelSet, trainLabel{j}) == 1);
 				m = norm(validate(i, :) - train(j, :));
-				if size(near, 1) < k
-					near = [near; m l];
-				elseif m < near(k, 1)
-					near(k, :) = [m l];
-				end
-				t = size(near, 1) - 1;
-				while t > 0 && near(t, 1) > near(t+1, 1)
-					tmp = near(t, :);
-					near(t, :) = near(t+1, :);
-					near(t+1, :) = tmp;
+				if m < best(1)
+					best = [m, l];
 				end
 			end
-			class = labelSet{mode(near(:, 2))};
+			class = labelSet{best( 2)};
 			if strcmp(class, validateLabel{i})
 				correct = correct + 1;
 			end

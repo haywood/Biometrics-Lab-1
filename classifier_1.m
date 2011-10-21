@@ -21,7 +21,7 @@ function classifier_1(trainpath, testpath, outtrainpath, outtestpath)
 	Aw = V*D^(-0.5);
 	sample = (Aw*sample')';
 
-	good = select_features(sample, perClass, 9);
+	good = select_features(sample, perClass, 2);
 	sample = sample(:, good);
 	
 	train = zeros(size(sample, 1) - size(labelSet, 1), size(sample, 2));
