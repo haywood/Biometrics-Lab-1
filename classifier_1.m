@@ -1,6 +1,6 @@
 function classifier_1(trainpath, testpath, outtrainpath, outtestpath)
 
-	% read file and set up variables
+% read file and set up variables
 	fTrainIn = fopen(trainpath, 'r');
 	C = textscan(fTrainIn, '%s %f %f %f %f %f %f %f %f %f %f %f %f %f %f');
 	fclose(fTrainIn);
@@ -9,91 +9,78 @@ function classifier_1(trainpath, testpath, outtrainpath, outtestpath)
 	sampleLabel = C{1};
 	perClass = 16;
 
-	numLabel = size(sampleLabel, 1);
-	numSample = size(sample, 1);
-
 	labelSet = unique(sampleLabel);
-	numLabel = size(labelSet, 1);
 
-	for i = 1:size(sample, 2)
-		sample(:, i) = (sample(:, i) - mean(sample(:, i)))/sqrt(var(sample(:, i)));
-	end
+% normalize using mean and sd
+	o = repmat(mean(sample), size(sample, 1), 1);
+	d = repmat(sqrt(var(sample)), size(sample, 1), 1);
+	sample = (sample - o)./d;
 
-	good = select_features(sample, perClass, 3);
+% whitening transform
+	[V, D] = eig(cov(sample));
+	Aw = V*D^(-0.5);
+	sample = (Aw*sample')';
+
+	good = select_features(sample, perClass, 9);
 	sample = sample(:, good);
-
-	numValidate = ceil(numSample/2);
-	numTrain = floor(numSample/2);
-	numFeat = size(sample, 2);
-
-	validate = zeros(numValidate, numFeat);
-	train = zeros(numLabel, numFeat);
-
-	validateLabel = {};
-	trainLabel = {};
-
-	% split samples for cross validation
-	i = 1;
-	j = 1;
-	for k = 1:numSample
-		if mod(k, perClass) < floor(perClass/2)
-			trainLabel{end+1} = sampleLabel{k};
-			train(i, :) = sample(k, :);
-			i = i + 1;
-		else
-			validateLabel{end+1} = sampleLabel{k};
-			validate(j, :) = sample(k, :);
-			j = j + 1;
-		end
-	end
-
-	% calculate mean and cov of the training data
-	mu = zeros(numLabel, numFeat);
-	sigma = zeros(numFeat*numLabel, numFeat);
-	for i = 1:numTrain
-		j = find(ismember(labelSet, trainLabel{i}));
-		mu(j, :) = mu(j, :) + train(i, :);
-	end
-	mu = mu/numTrain;
-
-	work = zeros(numTrain/numLabel, numFeat);
-	for i = 1:numLabel
-		k = 1;
-		for j = 1:numTrain
-			if strcmp(trainLabel{j}, labelSet{i})
-				work(k, :) = train(j, :);
-				k = k + 1;
-			end
-		end
-		sigma(1+(i-1)*numFeat:i*numFeat, :) = cov(work);
-	end
+	
+	train = zeros(size(sample, 1) - size(labelSet, 1), size(sample, 2));
+	validate = zeros(size(labelSet, 1), size(sample, 2));
 
 	correct = 0;
-	for i = 1:numValidate
-		best = -Inf;
-		class = '';
-		for j = 1:numLabel
-			m = P(validate(i, :), mu(j, :), sigma(1+(j-1)*numFeat:j*numFeat, :));
-			if m > best
-				class = labelSet{j};
-				best = m;
+
+	for offset = 1:perClass-1
+
+		validateLabel = {};
+		trainLabel = {};
+
+% split samples for cross validation
+		i = 1;
+		j = 1;
+		for k = 1:size(sample, 1)
+			if mod(k - offset, perClass)
+				trainLabel{end+1} = sampleLabel{k};
+				train(i, :) = sample(k, :);
+				i = i + 1;
+			else
+				validateLabel{end+1} = sampleLabel{k};
+				validate(j, :) = sample(k, :);
+				j = j + 1;
 			end
 		end
-		if strcmp(class, validateLabel{i})
-			correct = correct + 1;
+
+		k = 1;
+		for i = 1:size(validate, 1)
+			near = [];
+			for j = 1:size(train, 1)
+				l = find(ismember(labelSet, trainLabel{j}) == 1);
+				m = norm(validate(i, :) - train(j, :));
+				if size(near, 1) < k
+					near = [near; m l];
+				elseif m < near(k, 1)
+					near(k, :) = [m l];
+				end
+				t = size(near, 1) - 1;
+				while t > 0 && near(t, 1) > near(t+1, 1)
+					tmp = near(t, :);
+					near(t, :) = near(t+1, :);
+					near(t+1, :) = tmp;
+				end
+			end
+			class = labelSet{mode(near(:, 2))};
+			if strcmp(class, validateLabel{i})
+				correct = correct + 1;
+			end
+			validateLabel{i} = class;
 		end
 	end
 
-	correct/numValidate
+	correct/size(sample, 1)
 
 	fTrainOut = fopen(outtrainpath, 'w');
-	for ix = 1:numValidate
+	for ix = 1:size(validate, 1)
 		fprintf(fTrainOut, '%s', validateLabel{ix});
 		fprintf(fTrainOut, ' %f', validate(ix,:));
 		fprintf(fTrainOut, '\n');
 	end
 	fclose(fTrainOut);
-
-function [p] = P(x, mu, sigma)
-	d = size(mu, 1); % dimensionality
-	p = exp(-(x - mu)*inv(sigma)*(x - mu)'/2)/((2*pi*det(sigma))^(d/2));

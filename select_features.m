@@ -12,5 +12,5 @@ function [good] = select_features(sample, step, n)
 			if v(j) > mvar(j) mvar(j) = v(j); end
 		end
 	end	
-	[s, i] = sort(mvar); % sort mvar
-	good = i(1:n)'; % return first n of sorted indices
+	[s, i] = sort(mvar);
+	good = i(1:n)';
