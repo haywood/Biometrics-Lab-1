@@ -49,25 +49,24 @@ function classifier_1(trainpath, testpath, outtrainpath, outtestpath)
 			end
 		end
 
+		mu = [];
+		sigma = [];
+		for i = 1:perClass-1:size(train, 1)
+			mu = [mu; mean(train(i:i+perClass-2, :))];
+			sigma = [sigma; cov(train(i:i+perClass-2, :))];
+		end
+
+		d = size(train, 2);
 		k = 1;
 		for i = 1:size(validate, 1)
-			near = [];
-			for j = 1:size(train, 1)
-				l = find(ismember(labelSet, trainLabel{j}) == 1);
-				m = norm(validate(i, :) - train(j, :));
-				if size(near, 1) < k
-					near = [near; m l];
-				elseif m < near(k, 1)
-					near(k, :) = [m l];
-				end
-				t = size(near, 1) - 1;
-				while t > 0 && near(t, 1) > near(t+1, 1)
-					tmp = near(t, :);
-					near(t, :) = near(t+1, :);
-					near(t+1, :) = tmp;
+			best = [0 1];
+			for j = 1:size(labelSet, 1)
+				m = P(validate(i, :), mu(j, :), sigma(1+(j-1)*d:j*d, :));
+				if m > best(1)
+					best = [m j];
 				end
 			end
-			class = labelSet{mode(near(:, 2))};
+			class = labelSet{best(2)};
 			if strcmp(class, validateLabel{i})
 				correct = correct + 1;
 			end
@@ -84,3 +83,7 @@ function classifier_1(trainpath, testpath, outtrainpath, outtestpath)
 		fprintf(fTrainOut, '\n');
 	end
 	fclose(fTrainOut);
+
+function [p] = P(x, mu, sigma)
+
+	p = det(sigma)^(-0.5)*(2*pi)^(-size(mu, 1)/2)*exp(-0.5*(x - mu)*inv(sigma)*(x - mu)');
