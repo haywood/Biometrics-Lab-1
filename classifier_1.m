@@ -5,11 +5,15 @@ function classifier_1(trainpath, testpath, outtrainpath, outtestpath)
 	C = textscan(fTrainIn, '%s %f %f %f %f %f %f %f %f %f %f %f %f %f %f');
 	fclose(fTrainIn);
 
-	sample = cell2mat(C([3 4 5 9 10 12 14]));
+	sample = cell2mat(C(2:end));
 	sampleLabel = C{1};
 	perClass = 16;
 
 	labelSet = unique(sampleLabel);
+
+	good = [3 4 5 9 10 12 14];
+	good = select_features_1(sample, perClass, 4)
+	sample = sample(:, good);
 
 % whitening transform
 	[V, D] = eig(cov(sample));
