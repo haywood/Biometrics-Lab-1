@@ -11,7 +11,6 @@ function classifier_1(trainpath, testpath, outtrainpath, outtestpath)
 
 	labelSet = unique(sampleLabel);
 
-	good = [3 4 5 9 10 12 14];
 	good = select_features_1(sample, perClass, 1)
 	sample = sample(:, good);
 
@@ -52,7 +51,8 @@ function classifier_1(trainpath, testpath, outtrainpath, outtestpath)
 			mu = mean(X);
 			sigma = cov(X);
 			for i = 1:size(validate, 1)
-				m = mvnpdf(validate(i, :), mu, sigma);
+				x = validate(i, :);
+				m = mvnpdf(x, mu, sigma);
 				if m >= best(i, 1)
 					best(i, :) = [m c];
 				end
