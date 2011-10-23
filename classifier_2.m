@@ -46,12 +46,14 @@ function classifier_2(trainpath, testpath, outtrainpath, outtestpath)
 
 		k = 1;
 		for i = 1:size(validate, 1)
+			x = validate(i, :);
 			best = [Inf, 1];
 			for j = 1:size(train, 1)
 				l = find(ismember(labelSet, trainLabel{j}) == 1);
-				m = norm(validate(i, :) - train(j, :));
-				if m < best(1)
-					best = [m, l];
+				y = train(j, :);
+				s = norm(x - y);
+				if s < best(1)
+					best = [s, l];
 				end
 			end
 			class = labelSet{best( 2)};

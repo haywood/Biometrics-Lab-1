@@ -12,7 +12,7 @@ function classifier_1(trainpath, testpath, outtrainpath, outtestpath)
 	labelSet = unique(sampleLabel);
 
 	good = [3 4 5 9 10 12 14];
-	good = select_features_1(sample, perClass, 4)
+	good = select_features_1(sample, perClass, 1)
 	sample = sample(:, good);
 
 % whitening transform
