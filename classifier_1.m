@@ -5,25 +5,18 @@ function classifier_1(trainpath, testpath, outtrainpath, outtestpath)
 	C = textscan(fTrainIn, '%s %f %f %f %f %f %f %f %f %f %f %f %f %f %f');
 	fclose(fTrainIn);
 
-	sample = cell2mat(C(2:end));
+	sample = cell2mat(C([3 4 5 9 10 12 14]));
 	sampleLabel = C{1};
 	perClass = 16;
 
 	labelSet = unique(sampleLabel);
 
-% normalize using mean and sd
-	o = repmat(mean(sample), size(sample, 1), 1);
-	d = repmat(sqrt(var(sample)), size(sample, 1), 1);
-	sample = (sample - o)./d;
-
 % whitening transform
 	[V, D] = eig(cov(sample));
 	Aw = V*D^(-0.5);
-	sample = (Aw*sample')';
+	mu = repmat(mean(sample), size(sample, 1), 1);
+	sample = (Aw*(sample - mu)')';
 
-	good = select_features(sample, perClass, 2);
-	sample = sample(:, good);
-	
 	train = zeros(size(sample, 1) - size(labelSet, 1), size(sample, 2));
 	validate = zeros(size(labelSet, 1), size(sample, 2));
 
@@ -49,24 +42,21 @@ function classifier_1(trainpath, testpath, outtrainpath, outtestpath)
 			end
 		end
 
-		mu = [];
-		sigma = [];
-		for i = 1:perClass-1:size(train, 1)
-			mu = [mu; mean(train(i:i+perClass-2, :))];
-			sigma = [sigma; cov(train(i:i+perClass-2, :))];
-		end
-
-		d = size(train, 2);
-		k = 1;
-		for i = 1:size(validate, 1)
-			best = [0 1];
-			for j = 1:size(labelSet, 1)
-				m = P(validate(i, :), mu(j, :), sigma(1+(j-1)*d:j*d, :));
-				if m > best(1)
-					best = [m j];
+		best = zeros(size(validate, 1), 2);
+		for c = 1:size(labelSet, 1)
+			X = train(1+(c-1)*(perClass-1):c*(perClass-2), :);
+			mu = mean(X);
+			sigma = cov(X);
+			for i = 1:size(validate, 1)
+				m = mvnpdf(validate(i, :), mu, sigma);
+				if m >= best(i, 1)
+					best(i, :) = [m c];
 				end
 			end
-			class = labelSet{best(2)};
+		end
+
+		for i = 1:size(validate, 1)
+			class = labelSet{best(i, 2)};
 			if strcmp(class, validateLabel{i})
 				correct = correct + 1;
 			end
@@ -83,7 +73,3 @@ function classifier_1(trainpath, testpath, outtrainpath, outtestpath)
 		fprintf(fTrainOut, '\n');
 	end
 	fclose(fTrainOut);
-
-function [p] = P(x, mu, sigma)
-
-	p = det(sigma)^(-0.5)*(2*pi)^(-size(mu, 1)/2)*exp(-0.5*(x - mu)*inv(sigma)*(x - mu)');

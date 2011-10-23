@@ -13,4 +13,4 @@ function [good] = select_features(sample, step, n)
 		end
 	end	
 	[s, i] = sort(mvar);
-	good = i(1:n)';
+	good = i(1:n);
