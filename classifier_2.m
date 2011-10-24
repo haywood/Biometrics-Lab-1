@@ -12,13 +12,10 @@ function classifier_2(trainpath, testpath, outtrainpath, outtestpath)
 	labelSet = unique(sampleLabel);
 
 % normalize using mean and sd
-	o = repmat(mean(sample), size(sample, 1), 1);
-	d = repmat(sqrt(var(sample)), size(sample, 1), 1);
-	sample = (sample - o)./d;
+	mu = repmat(mean(sample), size(sample, 1), 1);
+	sigma = repmat(sqrt(var(sample)), size(sample, 1), 1);
+	sample = (sample - mu)./sigma;
 
-	good = select_features(sample, perClass, 8);
-	sample = sample(:, good);
-	
 	train = zeros(size(sample, 1) - size(labelSet, 1), size(sample, 2));
 	validate = zeros(size(labelSet, 1), size(sample, 2));
 	correct = zeros(perClass-1, 1);

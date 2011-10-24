@@ -1,16 +1,32 @@
-% for a given set of samples, discover the features that have the least intra-class variance for each class and return their indices
-% t is a threshold
-% n is an upper bound for the number of features
 function [good] = select_features(sample, step, n)
 
-	assert(n <= size(sample, 2));
-	good = ones(size(sample, 2), 1);
-	mvar = zeros(size(sample, 2), 1);
-	for i = 1:step:size(sample, 1)
-		v = var(sample(i:i+step-1, :));
-		for j = 1:size(sample, 2)
-			if v(j) > mvar(j) mvar(j) = v(j); end
+	assert(n > 0 & n < size(sample, 2));
+
+	d = size(sample, 2);
+	features = ones(d, 1);
+	best = features;
+	score = -Inf;
+
+	ffCorr = corr(sample);
+	cfCorr = zeros(1, d);
+
+	for i = 1:size(sample, 1)
+		sample(i, d+1) = ceil(i/step);
+	end
+
+	for i = 1:d
+		cFCorr(i) = corr(sample(:, i), sample(:, d+1));
+	end
+
+	combs = nchoosek(1:d, n);
+	for i = 1:size(combs, 1)
+		features = zeros(d, 1);
+		features(combs(i, :)) = 1;
+		s = sum(cFCorr/sqrt(sqrt(sum(sum(ffCorr.*repmat(features, 1, d))))));
+		if s > score
+			best = features;
+			score = s;
 		end
-	end	
-	[s, i] = sort(mvar);
-	good = i(1:n);
+	end
+
+	good = find(best == 1)';

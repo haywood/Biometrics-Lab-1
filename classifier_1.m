@@ -12,10 +12,10 @@ function classifier_1(trainpath, testpath, outtrainpath, outtestpath)
 	labelSet = unique(sampleLabel);
 
 	mu = repmat(mean(sample), size(sample, 1), 1);
-	sigma = repmat(var(sample), size(sample, 1), 1);
+	sigma = repmat(sqrt(var(sample)), size(sample, 1), 1);
 	sample = (sample - mu)./sigma;
 
-	good = select_features_1(sample, perClass, 5)
+	good = select_features(sample, perClass, 11)
 	sample = sample(:, good);
 
 % whitening transform
