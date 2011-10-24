@@ -16,13 +16,12 @@ function classifier_2(trainpath, testpath, outtrainpath, outtestpath)
 	d = repmat(sqrt(var(sample)), size(sample, 1), 1);
 	sample = (sample - o)./d;
 
-	good = select_features(sample, perClass, 11);
+	good = select_features(sample, perClass, 8);
 	sample = sample(:, good);
 	
 	train = zeros(size(sample, 1) - size(labelSet, 1), size(sample, 2));
 	validate = zeros(size(labelSet, 1), size(sample, 2));
-
-	correct = 0;
+	correct = zeros(perClass-1, 1);
 
 	for offset = 1:perClass-1
 
@@ -58,13 +57,15 @@ function classifier_2(trainpath, testpath, outtrainpath, outtestpath)
 			end
 			class = labelSet{best( 2)};
 			if strcmp(class, validateLabel{i})
-				correct = correct + 1;
+				correct(offset) = correct(offset) + 1;
 			end
 			validateLabel{i} = class;
 		end
 	end
 
-	correct/size(sample, 1)
+	correct/size(labelSet, 1)
+	[s, i] = sort(correct, 'descend');
+	i(1)
 
 	fTrainOut = fopen(outtrainpath, 'w');
 	for ix = 1:size(validate, 1)
