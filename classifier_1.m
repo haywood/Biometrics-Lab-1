@@ -15,7 +15,7 @@ function classifier_1(trainpath, testpath, outtrainpath, outtestpath)
 	sigma = repmat(var(sample), size(sample, 1), 1);
 	sample = (sample - mu)./sigma;
 
-	good = select_features_1(sample, perClass, 9)
+	good = select_features_1(sample, perClass, 5)
 	sample = sample(:, good);
 
 % whitening transform
@@ -53,19 +53,12 @@ function classifier_1(trainpath, testpath, outtrainpath, outtestpath)
 		for c = 1:size(labelSet, 1)
 			X = train(1+(c-1)*(perClass-1):c*(perClass-2), :);
 			mu(c, :) = mean(X);
-			for i = 1:size(train, 2)
-				k = i+(c-1)*size(train, 2);
-				x = X(:, i);
-				for j = 1:size(train, 2)
-					y = X(:, j);
-					s = (x - mu(c, i))'*(y - mu(c, j));
-					while s <= 0
-						s = s + 1;
-					end
-					sigma(k, j) = s;
-				end
-			end
+			k = 1 + (c-1)*size(train, 2);
+			sigma(k:k+size(train, 2)-1, :) = cov(X);
 		end
+
+		b = min(min(sigma));
+		if b < 0 sigma = 1 + sigma - b; end
 
 		best = zeros(size(validate, 1), 2);
 		best(:) = -Inf;
@@ -106,5 +99,5 @@ function [p] = log_mvnpdf(x, m, s)
 
 	c0 = -0.5*size(m, 1)*log(2*pi);
 	c1 = -0.5*log(det(s));
-	phi = -0.5*(x - m)*inv(s)*(x - m)';
+	phi = -0.5*(x - m)*pinv(s)*(x - m)';
 	p = c0 + c1 + phi;
