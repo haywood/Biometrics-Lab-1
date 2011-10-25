@@ -11,12 +11,13 @@ function classifier_1(trainpath, testpath, outtrainpath, outtestpath)
 
 	labelSet = unique(sampleLabel);
 
-	good = select_features(sample, perClass, 2)
+% select the best features
+	good = select_features(sample, perClass, 9);
 	sample = sample(:, good);
 
-% normalize using mean and sd
+% standardize using mean and sd
 	sampleMu = repmat(mean(sample), size(sample, 1), 1);
-	sampleSigma = repmat(sqrt(var(sample)), size(sample, 1), 1);
+	sampleSigma = repmat(std(sample), size(sample, 1), 1);
 	sample = (sample - sampleMu)./sampleSigma;
 
 	correct = zeros(perClass, 1);
@@ -52,23 +53,25 @@ function classifier_1(trainpath, testpath, outtrainpath, outtestpath)
 			end
 		end
 
+% calculate mean and covariance for each distribution
 		sigma = zeros(size(labelSet, 1)*size(train, 2), size(train, 2));
 		mu = zeros(size(labelSet, 1), size(train, 2));
 		for c = 1:size(labelSet, 1)
-			X = train(1+(c-1)*(step):c*(step-1), :);
+			X = train(1+(c-1)*step:c*(step-1), :);
 			mu(c, :) = mean(X);
 			k = 1 + (c-1)*size(train, 2);
 			sigma(k:k+size(train, 2)-1, :) = cov(X);
 		end
 
-%		b = min(min(sigma));
-%		if b < 0 sigma = 1 + sigma - b; end
+% make sure each covariance matrix is positive definite
+		b = min(min(sigma));
+		if b < 0 sigma = 1 + sigma - b; end
 
+% calculate the most likely class for each of the test samples
 		best = zeros(size(validate, 1), 2);
 		best(:) = -Inf;
 		for c = 1:size(labelSet, 1)
 			sig = sigma(1+(c-1)*size(train, 2):c*size(train, 2), :);
-			assert(all(all(sig > 0))) % make sure the sample covariance matrix is positive definite
 			for i = 1:size(validate, 1)
 				x = validate(i, :);
 				m = log_mvnpdf(x, mu(c, :), sig);
@@ -78,6 +81,7 @@ function classifier_1(trainpath, testpath, outtrainpath, outtestpath)
 			end
 		end
 
+% assign the classes and update the correct counts
 		for i = 1:size(validate, 1)
 			class = labelSet{best(i, 2)};
 			if strcmp(class, validateLabel{i})
@@ -85,6 +89,8 @@ function classifier_1(trainpath, testpath, outtrainpath, outtestpath)
 			end
 			validateLabel{i} = class;
 		end
+
+% calculate fraction correct and update the most accurate classifier so far
 		correct(offset+1) = correct(offset+1)/size(validate, 1);
 		if correct(offset+1) > bestSuccess
 			bestSuccess = correct(offset+1);
@@ -98,8 +104,9 @@ function classifier_1(trainpath, testpath, outtrainpath, outtestpath)
 		assert(sum(testCount) == size(labelSet, 1)*testCount(1));
 	end
 
-	bestSuccess
-	correct
+	display 'correct counts and average for training'
+	correct % show the fraction correct for each classifier
+	mean(correct) % show the average
 
 	trainFile = fopen(outtrainpath, 'w');
 	for i = 1:size(test, 1)
@@ -108,7 +115,7 @@ function classifier_1(trainpath, testpath, outtrainpath, outtestpath)
 	end
 	fclose(trainFile);
 
-% read and classify testing data
+% read and classify the real testing data
 	testFile = fopen(testpath, 'r');
 	C = textscan(testFile, '%s %f %f %f %f %f %f %f %f %f %f %f %f %f %f');
 	fclose(testFile);
@@ -137,6 +144,7 @@ function classifier_1(trainpath, testpath, outtrainpath, outtestpath)
 	end
 	fclose(testFile);
 
+% calculate the natural logarithm of the multivariate normal distribution
 function [p] = log_mvnpdf(x, m, s)
 
 	c0 = -0.5*size(m, 1)*log(2*pi);

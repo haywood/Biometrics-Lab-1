@@ -15,9 +15,9 @@ function classifier_2(trainpath, testpath, outtrainpath, outtestpath)
 	good = select_features(sample, perClass, 11);
 	sample = sample(:, good);
 
-% normalize using mean and sd
+% standardize using mean and sd
 	sampleMu = repmat(mean(sample), size(sample, 1), 1);
-	sampleSigma = repmat(sqrt(var(sample)), size(sample, 1), 1);
+	sampleSigma = repmat(std(sample), size(sample, 1), 1);
 	sample = (sample - sampleMu)./sampleSigma;
 
 	correct = zeros(perClass, 1);
@@ -66,12 +66,16 @@ function classifier_2(trainpath, testpath, outtrainpath, outtestpath)
 					best = [s, l];
 				end
 			end
+
+% calculate mean and covariance for each distribution
 			class = labelSet{best( 2)};
 			if strcmp(class, validateLabel{i})
 				correct(offset+1) = correct(offset+1) + 1;
 			end
 			validateLabel{i} = class;
 		end
+
+% make sure each covariance matrix is positive definite
 		correct(offset+1) = correct(offset+1)/size(validate, 1);
 		if correct(offset+1) > bestSuccess
 			bestSuccess = correct(offset+1);
@@ -85,8 +89,9 @@ function classifier_2(trainpath, testpath, outtrainpath, outtestpath)
 		assert(sum(testCount) == size(labelSet, 1)*testCount(1));
 	end
 
-	bestSuccess
-	correct
+	display 'correct counts and average for training'
+	correct % show the fraction correct for each classifier
+	mean(correct) % show the average
 
 	trainFile = fopen(outtrainpath, 'w');
 	for i = 1:size(test, 1)
