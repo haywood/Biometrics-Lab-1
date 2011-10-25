@@ -20,14 +20,15 @@ function classifier_2(trainpath, testpath, outtrainpath, outtestpath)
 	sampleSigma = repmat(std(sample), size(sample, 1), 1);
 	sample = (sample - sampleMu)./sampleSigma;
 
-	correct = zeros(perClass, 1);
+	numValidations = 10;
+	correct = zeros(numValidations, 1);
 	bestSuccess = 0;
 	classifierLabel = {};
 	classifier = [];
 	testLabel = {};
 	test = [];
 
-	for offset = 0:perClass-1
+	for offset = 0:numValidations-1
 
 		trainCount = zeros(1, size(labelSet, 1));
 		testCount = zeros(1, size(labelSet, 1));
